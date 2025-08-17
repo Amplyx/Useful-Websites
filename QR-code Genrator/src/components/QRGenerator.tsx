@@ -1,22 +1,34 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Link, 
-  Type, 
-  Wifi, 
-  Download, 
-  Settings, 
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Link,
+  Type,
+  Wifi,
+  Download,
+  Settings,
   Languages,
   Eye,
   EyeOff,
-  Palette
-} from 'lucide-react';
-import { generateQRCodePNG, generateQRCodeSVG, validateQRContent, validateURL, normalizeURL, type ErrorCorrectionLevel, type QRCodeOptions } from '../utils/qrcode';
-import { generateWiFiPayload, validateWiFiConfig, type WiFiConfig } from '../utils/wifi';
-import { downloadPNG, downloadSVG, sanitizeFilename } from '../utils/download';
-import { translations, type Language } from '../constants/translations';
+  Palette,
+} from "lucide-react";
+import {
+  generateQRCodePNG,
+  generateQRCodeSVG,
+  validateQRContent,
+  validateURL,
+  normalizeURL,
+  type ErrorCorrectionLevel,
+  type QRCodeOptions,
+} from "../utils/qrcode";
+import {
+  generateWiFiPayload,
+  validateWiFiConfig,
+  type WiFiConfig,
+} from "../utils/wifi";
+import { downloadPNG, downloadSVG, sanitizeFilename } from "../utils/download";
+import { translations, type Language } from "../constants/translations";
 
-type InputType = 'link' | 'text' | 'wifi';
-type SecurityType = 'WPA' | 'WEP' | 'nopass';
+type InputType = "link" | "text" | "wifi";
+type SecurityType = "WPA" | "WEP" | "nopass";
 
 interface QRState {
   inputType: InputType;
@@ -34,90 +46,90 @@ interface QRState {
 
 const QRGenerator: React.FC = () => {
   const [state, setState] = useState<QRState>({
-    inputType: 'link',
-    link: '',
-    text: '',
+    inputType: "link",
+    link: "",
+    text: "",
     wifi: {
-      ssid: '',
-      password: '',
-      security: 'WPA',
-      hidden: false
+      ssid: "",
+      password: "",
+      security: "WPA",
+      hidden: false,
     },
     options: {
       size: 256,
-      foregroundColor: '#000000',
-      backgroundColor: '#ffffff',
-      errorCorrectionLevel: 'M',
-      margin: 2
+      foregroundColor: "#000000",
+      backgroundColor: "#ffffff",
+      errorCorrectionLevel: "M",
+      margin: 2,
     },
-    filename: 'qrcode',
-    language: 'en',
+    filename: "qrcode",
+    language: "en",
     qrCodePNG: null,
     qrCodeSVG: null,
     isGenerating: false,
-    showPassword: false
+    showPassword: false,
   });
 
   const t = translations[state.language];
-  const isRTL = state.language === 'fa';
+  const isRTL = state.language === "fa";
 
   const getCurrentContent = useCallback((): string => {
     switch (state.inputType) {
-      case 'link':
-        return state.link ? normalizeURL(state.link) : '';
-      case 'text':
+      case "link":
+        return state.link ? normalizeURL(state.link) : "";
+      case "text":
         return state.text;
-      case 'wifi':
+      case "wifi":
         return generateWiFiPayload(state.wifi);
       default:
-        return '';
+        return "";
     }
   }, [state.inputType, state.link, state.text, state.wifi]);
 
   const generateQRCode = useCallback(async () => {
     const content = getCurrentContent();
-    
+
     if (!content) {
-      setState(prev => ({ ...prev, qrCodePNG: null, qrCodeSVG: null }));
+      setState((prev) => ({ ...prev, qrCodePNG: null, qrCodeSVG: null }));
       return;
     }
 
     const validation = validateQRContent(content);
     if (!validation.isValid) {
-      console.warn('Invalid QR content:', validation.errors);
+      console.warn("Invalid QR content:", validation.errors);
       return;
     }
 
-    if (state.inputType === 'link' && !validateURL(content)) {
-      console.warn('Invalid URL format');
+    if (state.inputType === "link" && !validateURL(content)) {
+      console.warn("Invalid URL format");
       return;
     }
 
-    if (state.inputType === 'wifi') {
+    if (state.inputType === "wifi") {
       const wifiValidation = validateWiFiConfig(state.wifi);
       if (!wifiValidation.isValid) {
-        console.warn('Invalid Wi-Fi config:', wifiValidation.errors);
+        console.warn("Invalid Wi-Fi config:", wifiValidation.errors);
         return;
       }
     }
 
-    setState(prev => ({ ...prev, isGenerating: true }));
+    setState((prev) => ({ ...prev, isGenerating: true }));
 
     try {
       const [pngDataUrl, svgContent] = await Promise.all([
         generateQRCodePNG(content, state.options),
-        generateQRCodeSVG(content, state.options)
+        generateQRCodeSVG(content, state.options),
       ]);
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         qrCodePNG: pngDataUrl,
         qrCodeSVG: svgContent,
-        isGenerating: false
+        isGenerating: false,
       }));
     } catch (error) {
-      console.error('Error generating QR code:', error);
-      setState(prev => ({ ...prev, isGenerating: false }));
+      console.error("Error generating QR code:", error);
+      setState((prev) => ({ ...prev, isGenerating: false }));
     }
   }, [getCurrentContent, state.inputType, state.options, state.wifi]);
 
@@ -129,38 +141,42 @@ const QRGenerator: React.FC = () => {
 
   const handleDownloadPNG = () => {
     if (state.qrCodePNG) {
-      const filename = sanitizeFilename(state.filename || 'qrcode');
+      const filename = sanitizeFilename(state.filename || "qrcode");
       downloadPNG(state.qrCodePNG, filename);
     }
   };
 
   const handleDownloadSVG = () => {
     if (state.qrCodeSVG) {
-      const filename = sanitizeFilename(state.filename || 'qrcode');
+      const filename = sanitizeFilename(state.filename || "qrcode");
       downloadSVG(state.qrCodeSVG, filename);
     }
   };
 
   const updateState = (updates: Partial<QRState>) => {
-    setState(prev => ({ ...prev, ...updates }));
+    setState((prev) => ({ ...prev, ...updates }));
   };
 
   const updateWiFi = (updates: Partial<WiFiConfig>) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      wifi: { ...prev.wifi, ...updates }
+      wifi: { ...prev.wifi, ...updates },
     }));
   };
 
   const updateOptions = (updates: Partial<QRCodeOptions>) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      options: { ...prev.options, ...updates }
+      options: { ...prev.options, ...updates },
     }));
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 ${isRTL ? 'rtl' : ''}`}>
+    <div
+      className={`min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 ${
+        isRTL ? "rtl" : ""
+      }`}
+    >
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -169,28 +185,26 @@ const QRGenerator: React.FC = () => {
         </div>
 
         {/* Language Toggle */}
-        <div className="flex justify-center mb-6 " dir='ltr'>
-          <div className="flex  md:flex-col  bg-white rounded-lg shadow-sm border border-gray-200 p-1">
+        <div className="flex justify-center mb-6 " dir="ltr">
+          <div className="flex   bg-white rounded-lg shadow-sm border border-gray-200 p-1">
             <button
-              onClick={() => updateState({ language: 'en' })}
+              onClick={() => updateState({ language: "en" })}
               className={`px-4 py-2 rounded-md flex items-center w-full gap-2 transition-all ${
-                state.language === 'en'
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
+                state.language === "en"
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              
               English
             </button>
             <button
-              onClick={() => updateState({ language: 'fa' })}
+              onClick={() => updateState({ language: "fa" })}
               className={`px-4 py-2 rounded-md flex items-center justify-center  transition-all ${
-                state.language === 'fa'
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
+                state.language === "fa"
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              
               فارسی
             </button>
           </div>
@@ -200,21 +214,23 @@ const QRGenerator: React.FC = () => {
           {/* Left Panel - Configuration */}
           <div className="space-y-6">
             {/* Input Type Selection */}
-            <div  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.inputType}</h2>
-              <div dir='ltr' className="grid grid-cols-3 gap-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                {t.inputType}
+              </h2>
+              <div dir="ltr" className="grid grid-cols-3 gap-2">
                 {[
-                  { type: 'link' as const, icon: Link, label: t.link },
-                  { type: 'text' as const, icon: Type, label: t.text },
-                  { type: 'wifi' as const, icon: Wifi, label: t.wifi }
+                  { type: "link" as const, icon: Link, label: t.link },
+                  { type: "text" as const, icon: Type, label: t.text },
+                  { type: "wifi" as const, icon: Wifi, label: t.wifi },
                 ].map(({ type, icon: Icon, label }) => (
                   <button
                     key={type}
                     onClick={() => updateState({ inputType: type })}
                     className={`p-4 rounded-lg border-2 transition-all focus-ring ${
                       state.inputType === type
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <Icon size={24} className="mx-auto mb-2" />
@@ -226,11 +242,16 @@ const QRGenerator: React.FC = () => {
 
             {/* Content Input */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.content}</h2>
-              
-              {state.inputType === 'link' && (
-                <div >
-                  <label htmlFor="link" className="block text-sm font-medium text-gray-700 mb-2">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                {t.content}
+              </h2>
+
+              {state.inputType === "link" && (
+                <div>
+                  <label
+                    htmlFor="link"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     {t.link}
                   </label>
                   <input
@@ -244,9 +265,12 @@ const QRGenerator: React.FC = () => {
                 </div>
               )}
 
-              {state.inputType === 'text' && (
+              {state.inputType === "text" && (
                 <div>
-                  <label htmlFor="text" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="text"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     {t.text}
                   </label>
                   <textarea
@@ -260,10 +284,13 @@ const QRGenerator: React.FC = () => {
                 </div>
               )}
 
-              {state.inputType === 'wifi' && (
+              {state.inputType === "wifi" && (
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="ssid" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="ssid"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       {t.ssid}
                     </label>
                     <input
@@ -277,43 +304,83 @@ const QRGenerator: React.FC = () => {
                     />
                   </div>
 
-                  <div>
-                    <label htmlFor="security" className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="relative">
+                    <label
+                      htmlFor="security"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       {t.security}
                     </label>
                     <select
                       id="security"
                       value={state.wifi.security}
-                      onChange={(e) => updateWiFi({ security: e.target.value as SecurityType })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus-ring"
+                      onChange={(e) =>
+                        updateWiFi({ security: e.target.value as SecurityType })
+                      }
+                      className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus-ring appearance-none"
                     >
                       {Object.entries(t.securityTypes).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
                       ))}
                     </select>
+
+                    {/* فلش سفارشی */}
+                    <div className="pointer-events-none absolute inset-y-0 top-7 right-3 flex items-center">
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
                   </div>
 
-                  {state.wifi.security !== 'nopass' && (
+                  {state.wifi.security !== "nopass" && (
                     <div>
-                      <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="password"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         {t.password}
                       </label>
                       <div className="relative">
                         <input
-                          type={state.showPassword ? 'text' : 'password'}
+                          type={state.showPassword ? "text" : "password"}
                           id="password"
                           value={state.wifi.password}
-                          onChange={(e) => updateWiFi({ password: e.target.value })}
+                          onChange={(e) =>
+                            updateWiFi({ password: e.target.value })
+                          }
                           placeholder={t.passwordPlaceholder}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus-ring ltr"
+                          className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus-ring ${
+                            state.language != "fa" ? "ltr" : "rtl"
+                          }`}
                           maxLength={63}
                         />
                         <button
                           type="button"
-                          onClick={() => updateState({ showPassword: !state.showPassword })}
-                          className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700`}
+                          onClick={() =>
+                            updateState({ showPassword: !state.showPassword })
+                          }
+                          className={`absolute ${
+                            isRTL ? "left-3" : "right-3"
+                          } top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700`}
                         >
-                          {state.showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          {state.showPassword ? (
+                            <EyeOff size={20} />
+                          ) : (
+                            <Eye size={20} />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -327,7 +394,12 @@ const QRGenerator: React.FC = () => {
                       onChange={(e) => updateWiFi({ hidden: e.target.checked })}
                       className="h-4 w-4 text-blue-600 border-gray-300 rounded focus-ring"
                     />
-                    <label htmlFor="hidden" className={`${isRTL ? 'mr-3' : 'ml-3'} text-sm font-medium text-gray-700`}>
+                    <label
+                      htmlFor="hidden"
+                      className={`${
+                        isRTL ? "mr-3" : "ml-3"
+                      } text-sm font-medium text-gray-700`}
+                    >
                       {t.hiddenNetwork}
                     </label>
                   </div>
@@ -341,10 +413,13 @@ const QRGenerator: React.FC = () => {
                 <Settings size={20} />
                 {t.customization}
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="size" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="size"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     {t.size}
                   </label>
                   <input
@@ -354,7 +429,9 @@ const QRGenerator: React.FC = () => {
                     max="1024"
                     step="32"
                     value={state.options.size}
-                    onChange={(e) => updateOptions({ size: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      updateOptions({ size: parseInt(e.target.value) })
+                    }
                     className="w-full"
                   />
                   <div className="text-center text-sm text-gray-500 mt-1">
@@ -363,7 +440,10 @@ const QRGenerator: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="margin" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="margin"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     {t.margin}
                   </label>
                   <input
@@ -373,7 +453,9 @@ const QRGenerator: React.FC = () => {
                     max="10"
                     step="1"
                     value={state.options.margin}
-                    onChange={(e) => updateOptions({ margin: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      updateOptions({ margin: parseInt(e.target.value) })
+                    }
                     className="w-full"
                   />
                   <div className="text-center text-sm text-gray-500 mt-1">
@@ -382,7 +464,10 @@ const QRGenerator: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="foreground" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <label
+                    htmlFor="foreground"
+                    className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2"
+                  >
                     <Palette size={16} />
                     {t.foregroundColor}
                   </label>
@@ -390,13 +475,18 @@ const QRGenerator: React.FC = () => {
                     type="color"
                     id="foreground"
                     value={state.options.foregroundColor}
-                    onChange={(e) => updateOptions({ foregroundColor: e.target.value })}
+                    onChange={(e) =>
+                      updateOptions({ foregroundColor: e.target.value })
+                    }
                     className="w-full h-12 focus-ring"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="background" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <label
+                    htmlFor="background"
+                    className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2"
+                  >
                     <Palette size={16} />
                     {t.backgroundColor}
                   </label>
@@ -404,25 +494,56 @@ const QRGenerator: React.FC = () => {
                     type="color"
                     id="background"
                     value={state.options.backgroundColor}
-                    onChange={(e) => updateOptions({ backgroundColor: e.target.value })}
+                    onChange={(e) =>
+                      updateOptions({ backgroundColor: e.target.value })
+                    }
                     className="w-full h-12 focus-ring"
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label htmlFor="errorCorrection" className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="md:col-span-2 relative">
+                  <label
+                    htmlFor="errorCorrection"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     {t.errorCorrection}
                   </label>
                   <select
                     id="errorCorrection"
                     value={state.options.errorCorrectionLevel}
-                    onChange={(e) => updateOptions({ errorCorrectionLevel: e.target.value as ErrorCorrectionLevel })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus-ring"
+                    onChange={(e) =>
+                      updateOptions({
+                        errorCorrectionLevel: e.target
+                          .value as ErrorCorrectionLevel,
+                      })
+                    }
+                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus-ring appearance-none"
                   >
-                    {Object.entries(t.errorCorrectionLevels).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
+                    {Object.entries(t.errorCorrectionLevels).map(
+                      ([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      )
+                    )}
                   </select>
+                  {/* فلش سفارشی */}
+                  <div className="pointer-events-none absolute inset-y-0 top-7 right-3 flex items-center">
+                    <svg
+                      className="h-5 w-5 text-gray-400"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
@@ -432,7 +553,9 @@ const QRGenerator: React.FC = () => {
           <div className="space-y-6">
             {/* Preview */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.preview}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                {t.preview}
+              </h2>
               <div className="flex justify-center">
                 <div className="relative">
                   {state.isGenerating ? (
@@ -444,11 +567,17 @@ const QRGenerator: React.FC = () => {
                       src={state.qrCodePNG}
                       alt="Generated QR Code"
                       className="max-w-full h-auto border border-gray-200 rounded-lg shadow-sm"
-                      style={{ maxWidth: '300px', maxHeight: '300px' }}
+                      style={{ maxWidth: "300px", maxHeight: "300px" }}
                     />
                   ) : (
                     <div className="flex items-center justify-center w-64 h-64 border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
-                      {getCurrentContent() ? (state.language!='fa'?'Generating...':"در حال ساخت ...")  : (state.language=='fa'?'ابتدا محتویات خود را وارد کنید':"Enter content to generate QR code") }
+                      {getCurrentContent()
+                        ? state.language != "fa"
+                          ? "Generating..."
+                          : "در حال ساخت ..."
+                        : state.language == "fa"
+                        ? "ابتدا محتویات خود را وارد کنید"
+                        : "Enter content to generate QR code"}
                     </div>
                   )}
                 </div>
@@ -461,10 +590,13 @@ const QRGenerator: React.FC = () => {
                 <Download size={20} />
                 {t.download}
               </h2>
-              
+
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="filename" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="filename"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     {t.filename}
                   </label>
                   <input
@@ -486,7 +618,7 @@ const QRGenerator: React.FC = () => {
                     <Download size={20} />
                     {t.downloadPNG}
                   </button>
-                  
+
                   <button
                     onClick={handleDownloadSVG}
                     disabled={!state.qrCodeSVG}
