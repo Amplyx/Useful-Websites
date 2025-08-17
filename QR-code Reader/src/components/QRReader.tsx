@@ -1,12 +1,12 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  Camera, 
-  Upload, 
-  Scan, 
-  Copy, 
-  ExternalLink, 
-  Wifi, 
-  Type, 
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import {
+  Camera,
+  Upload,
+  Scan,
+  Copy,
+  ExternalLink,
+  Wifi,
+  Type,
   Link as LinkIcon,
   Phone,
   Mail,
@@ -19,14 +19,27 @@ import {
   AlertCircle,
   RefreshCw,
   Download,
-  Languages
-} from 'lucide-react';
-import jsQR from 'jsqr';
-import { readerTranslations, type ReaderLanguage } from '../constants/readerTranslations';
+  Languages,
+} from "lucide-react";
+import jsQR from "jsqr";
+import {
+  readerTranslations,
+  type ReaderLanguage,
+} from "../constants/readerTranslations";
 
 interface QRResult {
   data: string;
-  type: 'url' | 'text' | 'wifi' | 'email' | 'phone' | 'sms' | 'geo' | 'vcard' | 'event' | 'unknown';
+  type:
+    | "url"
+    | "text"
+    | "wifi"
+    | "email"
+    | "phone"
+    | "sms"
+    | "geo"
+    | "vcard"
+    | "event"
+    | "unknown";
   parsed?: any;
 }
 
@@ -42,11 +55,11 @@ const QRReader: React.FC = () => {
   const [result, setResult] = useState<QRResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [scanMode, setScanMode] = useState<'camera' | 'file'>('camera');
+  const [scanMode, setScanMode] = useState<"camera" | "file">("camera");
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<string>('');
-  const [language, setLanguage] = useState<ReaderLanguage>('en');
-  
+  const [selectedDevice, setSelectedDevice] = useState<string>("");
+  const [language, setLanguage] = useState<ReaderLanguage>("en");
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,20 +67,22 @@ const QRReader: React.FC = () => {
   const animationRef = useRef<number>();
 
   const t = readerTranslations[language];
-  const isRTL = language === 'fa';
+  const isRTL = language === "fa";
 
   // Get available cameras
   useEffect(() => {
     const getDevices = async () => {
       try {
         const deviceList = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = deviceList.filter(device => device.kind === 'videoinput');
+        const videoDevices = deviceList.filter(
+          (device) => device.kind === "videoinput"
+        );
         setDevices(videoDevices);
         if (videoDevices.length > 0 && !selectedDevice) {
           setSelectedDevice(videoDevices[0].deviceId);
         }
       } catch (err) {
-        console.error('Error getting devices:', err);
+        console.error("Error getting devices:", err);
       }
     };
 
@@ -77,170 +92,187 @@ const QRReader: React.FC = () => {
   // Parse QR code data to determine type and extract information
   const parseQRData = useCallback((data: string): QRResult => {
     const lowerData = data.toLowerCase();
-    
+
     // URL detection
     if (data.match(/^https?:\/\//i) || data.match(/^www\./i)) {
-      return { data, type: 'url' };
+      return { data, type: "url" };
     }
-    
+
     // WiFi detection
-    if (data.startsWith('WIFI:')) {
-      const wifiMatch = data.match(/WIFI:T:([^;]*);S:([^;]*);P:([^;]*);H:([^;]*);/);
+    if (data.startsWith("WIFI:")) {
+      const wifiMatch = data.match(
+        /WIFI:T:([^;]*);S:([^;]*);P:([^;]*);H:([^;]*);/
+      );
       if (wifiMatch) {
         const parsed: WiFiData = {
-          security: wifiMatch[1] || 'nopass',
-          ssid: wifiMatch[2] || '',
-          password: wifiMatch[3] || '',
-          hidden: wifiMatch[4] === 'true'
+          security: wifiMatch[1] || "nopass",
+          ssid: wifiMatch[2] || "",
+          password: wifiMatch[3] || "",
+          hidden: wifiMatch[4] === "true",
         };
-        return { data, type: 'wifi', parsed };
+        return { data, type: "wifi", parsed };
       }
     }
-    
+
     // Email detection
-    if (data.startsWith('mailto:') || data.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      return { data, type: 'email' };
+    if (
+      data.startsWith("mailto:") ||
+      data.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+    ) {
+      return { data, type: "email" };
     }
-    
+
     // Phone detection
-    if (data.startsWith('tel:') || data.match(/^[\+]?[0-9\-\(\)\s]+$/)) {
-      return { data, type: 'phone' };
+    if (data.startsWith("tel:") || data.match(/^[\+]?[0-9\-\(\)\s]+$/)) {
+      return { data, type: "phone" };
     }
-    
+
     // SMS detection
-    if (data.startsWith('sms:') || data.startsWith('smsto:')) {
-      return { data, type: 'sms' };
+    if (data.startsWith("sms:") || data.startsWith("smsto:")) {
+      return { data, type: "sms" };
     }
-    
+
     // Geo location detection
-    if (data.startsWith('geo:')) {
-      return { data, type: 'geo' };
+    if (data.startsWith("geo:")) {
+      return { data, type: "geo" };
     }
-    
+
     // vCard detection
-    if (data.startsWith('BEGIN:VCARD')) {
-      return { data, type: 'vcard' };
+    if (data.startsWith("BEGIN:VCARD")) {
+      return { data, type: "vcard" };
     }
-    
+
     // Calendar event detection
-    if (data.startsWith('BEGIN:VEVENT')) {
-      return { data, type: 'event' };
+    if (data.startsWith("BEGIN:VEVENT")) {
+      return { data, type: "event" };
     }
-    
+
     // Default to text
-    return { data, type: 'text' };
+    return { data, type: "text" };
   }, []);
 
   // Start camera scanning
   const startScanning = useCallback(async () => {
-    try {
-      setError(null);
-      setResult(null);
-      
-      const constraints = {
-        video: {
-          deviceId: selectedDevice ? { exact: selectedDevice } : undefined,
-          facingMode: selectedDevice ? undefined : { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      };
+  try {
+    setError(null);
+    setResult(null);
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setIsScanning(true);
-        
-        // Start scanning loop
-        const scanFrame = () => {
-          if (videoRef.current && canvasRef.current && isScanning) {
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
-            
-            if (ctx && video.readyState === video.HAVE_ENOUGH_DATA) {
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              
-              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              const code = jsQR(imageData.data, imageData.width, imageData.height);
-              
-              if (code) {
-                const parsedResult = parseQRData(code.data);
-                setResult(parsedResult);
-                stopScanning();
-                return;
-              }
-            }
-            
-            animationRef.current = requestAnimationFrame(scanFrame);
-          }
-        };
-        
-        scanFrame();
+    const constraints = {
+      video: {
+        deviceId: selectedDevice ? { exact: selectedDevice } : undefined,
+        facingMode: selectedDevice ? undefined : { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
       }
-    } catch (err) {
-      setError(t.cameraError);
-      console.error('Camera access error:', err);
-    }
-  }, [selectedDevice, isScanning, parseQRData]);
+    };
 
-  // Stop camera scanning
-  const stopScanning = useCallback(() => {
-    setIsScanning(false);
-    
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
-    
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    streamRef.current = stream;
+
     if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  }, []);
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setIsScanning(true);
 
-  // Handle file upload
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+      const scanFrame = () => {
+        if (!isScanning) return; // بررسی وضعیت اسکن
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
+        const video = videoRef.current;
         const canvas = canvasRef.current;
-        if (!canvas) return;
-        
+        if (!video || !canvas) return;
+
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-        
-        if (code) {
-          const parsedResult = parseQRData(code.data);
-          setResult(parsedResult);
-          setError(null);
-        } else {
-          setError(t.qrNotFound);
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+          // استفاده از inversionAttempts: "attemptBoth" برای بهتر خواندن QR تار یا معکوس
+          const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+
+          if (code) {
+            const parsedResult = parseQRData(code.data);
+            setResult(parsedResult);
+
+            // توقف اسکن و حلقه
+            if (animationRef.current) cancelAnimationFrame(animationRef.current);
+            stopScanning();
+            return;
+          }
         }
+
+        animationRef.current = requestAnimationFrame(scanFrame);
       };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  }, [parseQRData]);
+
+      scanFrame();
+    }
+  } catch (err) {
+    setError(t.cameraError);
+    console.error('Camera access error:', err);
+  }
+}, [selectedDevice, parseQRData]); // حذف isScanning از وابستگی
+
+// Stop camera scanning
+const stopScanning = useCallback(() => {
+  setIsScanning(false);
+
+  if (animationRef.current) {
+    cancelAnimationFrame(animationRef.current);
+    animationRef.current = null;
+  }
+
+  if (streamRef.current) {
+    streamRef.current.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+  }
+
+  if (videoRef.current) {
+    videoRef.current.srcObject = null;
+  }
+}, []);
+
+  // Handle file upload
+  const handleFileUpload = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+          if (code) {
+            const parsedResult = parseQRData(code.data);
+            setResult(parsedResult);
+            setError(null);
+          } else {
+            setError(t.qrNotFound);
+          }
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    },
+    [parseQRData]
+  );
 
   // Copy to clipboard
   const copyToClipboard = async (text: string) => {
@@ -249,28 +281,39 @@ const QRReader: React.FC = () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      console.error("Failed to copy:", err);
     }
   };
 
   // Get icon for QR type
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'url': return <LinkIcon size={20} className="text-blue-500" />;
-      case 'wifi': return <Wifi size={20} className="text-green-500" />;
-      case 'email': return <Mail size={20} className="text-red-500" />;
-      case 'phone': return <Phone size={20} className="text-purple-500" />;
-      case 'sms': return <Phone size={20} className="text-orange-500" />;
-      case 'geo': return <MapPin size={20} className="text-teal-500" />;
-      case 'vcard': return <User size={20} className="text-indigo-500" />;
-      case 'event': return <Calendar size={20} className="text-pink-500" />;
-      default: return <Type size={20} className="text-gray-500" />;
+      case "url":
+        return <LinkIcon size={20} className="text-blue-500" />;
+      case "wifi":
+        return <Wifi size={20} className="text-green-500" />;
+      case "email":
+        return <Mail size={20} className="text-red-500" />;
+      case "phone":
+        return <Phone size={20} className="text-purple-500" />;
+      case "sms":
+        return <Phone size={20} className="text-orange-500" />;
+      case "geo":
+        return <MapPin size={20} className="text-teal-500" />;
+      case "vcard":
+        return <User size={20} className="text-indigo-500" />;
+      case "event":
+        return <Calendar size={20} className="text-pink-500" />;
+      default:
+        return <Type size={20} className="text-gray-500" />;
     }
   };
 
   // Get type label
   const getTypeLabel = (type: string) => {
-    return t.typeLabels[type as keyof typeof t.typeLabels] || t.typeLabels.unknown;
+    return (
+      t.typeLabels[type as keyof typeof t.typeLabels] || t.typeLabels.unknown
+    );
   };
 
   // Render result content
@@ -294,17 +337,21 @@ const QRReader: React.FC = () => {
           </button>
         </div>
 
-        {result.type === 'wifi' && result.parsed ? (
+        {result.type === "wifi" && result.parsed ? (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t.networkName}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t.networkName}
+                </label>
                 <div className="p-3 bg-gray-50 rounded-lg font-mono text-sm">
                   {result.parsed.ssid}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t.securityType}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t.securityType}
+                </label>
                 <div className="p-3 bg-gray-50 rounded-lg text-sm">
                   {result.parsed.security || t.open_network}
                 </div>
@@ -312,7 +359,9 @@ const QRReader: React.FC = () => {
             </div>
             {result.parsed.password && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t.password}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t.password}
+                </label>
                 <div className="p-3 bg-gray-50 rounded-lg font-mono text-sm break-all">
                   {result.parsed.password}
                 </div>
@@ -320,9 +369,13 @@ const QRReader: React.FC = () => {
             )}
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">{t.hiddenNetwork}:</span>
-              <span className={`px-2 py-1 rounded-full text-xs ${
-                result.parsed.hidden ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-              }`}>
+              <span
+                className={`px-2 py-1 rounded-full text-xs ${
+                  result.parsed.hidden
+                    ? "bg-red-100 text-red-800"
+                    : "bg-green-100 text-green-800"
+                }`}
+              >
                 {result.parsed.hidden ? t.yes : t.no}
               </span>
             </div>
@@ -330,7 +383,9 @@ const QRReader: React.FC = () => {
         ) : (
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t.content}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t.content}
+              </label>
               <div className="p-4 bg-gray-50 rounded-lg font-mono text-sm break-all max-h-40 overflow-y-auto scrollbar-thin">
                 {result.data}
               </div>
@@ -346,30 +401,38 @@ const QRReader: React.FC = () => {
             {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
             {copied ? t.copied : t.copy}
           </button>
-          
-          {result.type === 'url' && (
+
+          {result.type === "url" && (
             <button
-              onClick={() => window.open(result.data, '_blank')}
+              onClick={() => window.open(result.data, "_blank")}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus-ring"
             >
               <ExternalLink size={16} />
               {t.open}
             </button>
           )}
-          
-          {result.type === 'email' && (
+
+          {result.type === "email" && (
             <button
-              onClick={() => window.location.href = result.data.startsWith('mailto:') ? result.data : `mailto:${result.data}`}
+              onClick={() =>
+                (window.location.href = result.data.startsWith("mailto:")
+                  ? result.data
+                  : `mailto:${result.data}`)
+              }
               className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus-ring"
             >
               <Mail size={16} />
               {t.sendEmail}
             </button>
           )}
-          
-          {result.type === 'phone' && (
+
+          {result.type === "phone" && (
             <button
-              onClick={() => window.location.href = result.data.startsWith('tel:') ? result.data : `tel:${result.data}`}
+              onClick={() =>
+                (window.location.href = result.data.startsWith("tel:")
+                  ? result.data
+                  : `tel:${result.data}`)
+              }
               className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors focus-ring"
             >
               <Phone size={16} />
@@ -389,7 +452,11 @@ const QRReader: React.FC = () => {
   }, [stopScanning]);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 ${isRTL ? 'rtl' : ''}`}>
+    <div
+      className={`min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 ${
+        isRTL ? "rtl" : ""
+      }`}
+    >
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -398,28 +465,26 @@ const QRReader: React.FC = () => {
         </div>
 
         {/* Language Toggle */}
-        <div className="flex justify-center mb-6" dir='ltr'>
+        <div className="flex justify-center mb-6" dir="ltr">
           <div className="flex bg-white rounded-lg shadow-sm border border-gray-200 p-1">
             <button
-              onClick={() => setLanguage('en')}
+              onClick={() => setLanguage("en")}
               className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
-                language === 'en'
-                  ? 'bg-purple-500 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
+                language === "en"
+                  ? "bg-purple-500 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              
               English
             </button>
             <button
-              onClick={() => setLanguage('fa')}
+              onClick={() => setLanguage("fa")}
               className={`px-4 py-2 rounded-md flex items-center  justify-center transition-all ${
-                language === 'fa'
-                  ? 'bg-purple-500 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
+                language === "fa"
+                  ? "bg-purple-500 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              
               فارسی
             </button>
           </div>
@@ -428,42 +493,48 @@ const QRReader: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           {/* Mode Selection */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.scanMethod}</h2>
-            <div dir='ltr' className="grid grid-cols-2 gap-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              {t.scanMethod}
+            </h2>
+            <div dir="ltr" className="grid grid-cols-2 gap-4">
               <button
-                onClick={() => setScanMode('camera')}
+                onClick={() => setScanMode("camera")}
                 className={`p-4 rounded-lg border-2 transition-all focus-ring ${
-                  scanMode === 'camera'
-                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-gray-300'
+                  scanMode === "camera"
+                    ? "border-purple-500 bg-purple-50 text-purple-700"
+                    : "border-gray-200 hover:border-gray-300"
                 }`}
               >
                 <Camera size={32} className="mx-auto mb-2" />
                 <div className="font-medium">{t.camera}</div>
                 <div className="text-sm text-gray-500 mt-1">{t.cameraDesc}</div>
               </button>
-              
+
               <button
-                onClick={() => setScanMode('file')}
+                onClick={() => setScanMode("file")}
                 className={`p-4 rounded-lg border-2 transition-all focus-ring ${
-                  scanMode === 'file'
-                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-gray-300'
+                  scanMode === "file"
+                    ? "border-purple-500 bg-purple-50 text-purple-700"
+                    : "border-gray-200 hover:border-gray-300"
                 }`}
               >
                 <Upload size={32} className="mx-auto mb-2" />
                 <div className="font-medium">{t.fileUpload}</div>
-                <div className="text-sm text-gray-500 mt-1">{t.fileUploadDesc}</div>
+                <div className="text-sm text-gray-500 mt-1">
+                  {t.fileUploadDesc}
+                </div>
               </button>
             </div>
           </div>
 
           {/* Camera Mode */}
-          {scanMode === 'camera' && (
+          {scanMode === "camera" && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
               {devices.length > 1 && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.selectCamera}</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.selectCamera}
+                  </label>
                   <select
                     value={selectedDevice}
                     onChange={(e) => setSelectedDevice(e.target.value)}
@@ -482,20 +553,24 @@ const QRReader: React.FC = () => {
                 <video
                   ref={videoRef}
                   className="w-full max-w-md mx-auto rounded-lg border border-gray-300"
-                  style={{ display: isScanning ? 'block' : 'none' }}
+                  style={{ display: isScanning ? "block" : "none" }}
                   playsInline
                   muted
                 />
-                
+
                 {!isScanning && (
                   <div className="flex items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg">
                     <div className="text-center">
                       <Scan size={48} className="mx-auto text-gray-400 mb-4" />
-                      <p className="text-gray-500 mb-4">{language === 'fa' ? 'برای شروع اسکن دکمه زیر را فشار دهید' : 'Press the button below to start scanning'}</p>
+                      <p className="text-gray-500 mb-4">
+                        {language === "fa"
+                          ? "برای شروع اسکن دکمه زیر را فشار دهید"
+                          : "Press the button below to start scanning"}
+                      </p>
                     </div>
                   </div>
                 )}
-                
+
                 {isScanning && (
                   <div className="absolute inset-0 pointer-events-none">
                     <div className="absolute inset-4 border-2 border-purple-500 rounded-lg">
@@ -531,7 +606,7 @@ const QRReader: React.FC = () => {
           )}
 
           {/* File Upload Mode */}
-          {scanMode === 'file' && (
+          {scanMode === "file" && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
               <div
                 onClick={() => fileInputRef.current?.click()}
@@ -544,7 +619,7 @@ const QRReader: React.FC = () => {
                   {t.selectFile}
                 </button>
               </div>
-              
+
               <input
                 ref={fileInputRef}
                 type="file"
